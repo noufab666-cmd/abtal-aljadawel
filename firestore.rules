@@ -1,0 +1,57 @@
+rules_version = '2';
+// قواعد حماية قاعدة بيانات «أبطال الجداول»
+// - كل طالبة تقرأ وتعدّل ملفها فقط، ولا تستطيع إنقاص نتيجتها أو زيادتها بأكثر من نقاط جولة واحدة.
+// - المعلمة (حساب teacher@abtal-aljadawel.app) تقرأ كل النتائج وتدير الأسئلة.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isTeacher() { return signedIn() && request.auth.token.email == 'teacher@abtal-aljadawel.app'; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function validTeam(t) { return t in ['stars', 'moons', 'pearls', 'flowers']; }
+
+    match /students/{uid} {
+      allow read: if isTeacher() || isOwner(uid);
+      allow create: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && validTeam(request.resource.data.team)
+        && request.resource.data.name is string && request.resource.data.name.size() <= 40
+        && request.resource.data.totalScore == 0
+        && request.resource.data.roundsPlayed == 0;
+      allow update: if isTeacher() || (isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.name == resource.data.name
+        && request.resource.data.team == resource.data.team
+        && request.resource.data.pin == resource.data.pin
+        && request.resource.data.roundsPlayed == resource.data.roundsPlayed + 1
+        && request.resource.data.totalScore >= resource.data.totalScore
+        && request.resource.data.totalScore <= resource.data.totalScore + 300);
+      allow delete: if isTeacher();
+
+      match /rounds/{roundId} {
+        allow read: if isTeacher() || isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.score is int
+          && request.resource.data.score >= 0 && request.resource.data.score <= 300
+          && request.resource.data.correct is int
+          && request.resource.data.correct >= 0 && request.resource.data.correct <= 10
+          && request.resource.data.answers.size() <= 10;
+        allow delete: if isTeacher();
+      }
+    }
+
+    // لوحة النتائج العامة: يجب أن تطابق ملف الطالبة نفسه
+    match /leaderboard/{uid} {
+      allow read: if signedIn();
+      allow write: if isTeacher() || (isOwner(uid)
+        && request.resource.data.total == getAfter(/databases/$(database)/documents/students/$(uid)).data.totalScore
+        && request.resource.data.name == getAfter(/databases/$(database)/documents/students/$(uid)).data.name
+        && request.resource.data.team == getAfter(/databases/$(database)/documents/students/$(uid)).data.team);
+    }
+
+    // الأسئلة التي تضيفها المعلمة
+    match /questions/{qid} {
+      allow read: if signedIn();
+      allow write: if isTeacher();
+    }
+  }
+}

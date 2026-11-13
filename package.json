@@ -1,0 +1,29 @@
+{
+  "name": "abtal-aljadawel",
+  "version": "1.0.0",
+  "description": "أبطال الجداول — لعبة جداول الضرب (Smart Math | رياضيات بذكاء)",
+  "scripts": {
+    "start": "python3 -m http.server 5173 --directory public",
+    "build:firebase": "esbuild src/firebase-entry.js --bundle --format=esm --minify --target=es2020 --outfile=public/vendor/firebase.js",
+    "emulators": "firebase emulators:start --only auth,firestore --project demo-abtal"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noufab666-cmd/abtal-aljadawel.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/noufab666-cmd/abtal-aljadawel/issues"
+  },
+  "homepage": "https://github.com/noufab666-cmd/abtal-aljadawel#readme",
+  "dependencies": {
+    "firebase": "^11.10.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "firebase-tools": "^15.36.0"
+  },
+  "private": true
+}
