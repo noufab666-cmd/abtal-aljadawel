@@ -1,5 +1,5 @@
 import {
-  APP, TABLES, TEAMS, DIFFICULTIES, QUESTION_TYPES, ICONS, teamById, toAr, fmtDateTime, pct, esc, $, $$, toast,
+  APP, TABLES, TEAMS, teamBadge, DIFFICULTIES, QUESTION_TYPES, ICONS, teamById, toAr, fmtDateTime, pct, esc, $, $$, toast,
   loadBuiltInQuestions, validateQuestion, pointsFor, registerSW,
 } from './common.js';
 import { getStore, StoreError, DEMO_TEACHER_PASSWORD } from './store.js';
@@ -223,7 +223,7 @@ async function viewTeams() {
   $('#view').innerHTML = `
     <div class="team-rank">
       ${sorted.map((t, i) => `<div class="team-row ${i === 0 && totals[t.id].total ? 'first' : ''}">
-        <span class="ticon" style="color:${t.color}">${ICONS[t.icon]}</span>
+        <span class="ticon">${teamBadge(t, 32)}</span>
         <span><strong>${toAr(i + 1)}. ${t.name}</strong><br><small style="color:var(--muted)">${toAr(totals[t.id].count)} طالبة</small></span>
         <b>${toAr(totals[t.id].total)}</b>
       </div>`).join('')}

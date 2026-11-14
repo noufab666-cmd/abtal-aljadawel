@@ -31,12 +31,15 @@ export const QUESTION_TYPES = ['حقائق الضرب', 'خصائص الضرب �
 // صفوف لوحة الأسئلة (مثل الصور المرجعية: قيمتان لكل مستوى)
 export const BOARD_ROWS = [10, 10, 20, 20, 30, 30];
 
+// الفرق بأسماء علماء رياضيات مسلمين (المعرّفات الداخلية ثابتة لأنها مستخدمة في قواعد الحماية)
 export const TEAMS = [
-  { id: 'stars', name: 'فريق النجوم', color: '#fbbf24', icon: 'star' },
-  { id: 'moons', name: 'فريق الأقمار', color: '#93c5fd', icon: 'moon' },
-  { id: 'pearls', name: 'فريق اللآلئ', color: '#f9a8d4', icon: 'pearl' },
-  { id: 'flowers', name: 'فريق الزهور', color: '#86efac', icon: 'flower' },
+  { id: 'stars', name: 'فريق الخوارزمي', short: 'الخوارزمي', letter: 'خ', color: '#fbbf24', about: 'مؤسس علم الجبر' },
+  { id: 'moons', name: 'فريق البيروني', short: 'البيروني', letter: 'ب', color: '#93c5fd', about: 'عالم الرياضيات والفلك' },
+  { id: 'pearls', name: 'فريق ابن الهيثم', short: 'ابن الهيثم', letter: 'هـ', color: '#f9a8d4', about: 'عالم الرياضيات والبصريات' },
+  { id: 'flowers', name: 'فريق الكاشي', short: 'الكاشي', letter: 'ك', color: '#86efac', about: 'عالم الحساب والكسور العشرية' },
 ];
+// شارة الفريق: دائرة ملوّنة بأول حرف من اسم العالِم (بدون صور أو شخصيات)
+export const teamBadge = (t, size = 28) => `<span class="team-badge" aria-hidden="true" style="background:${t.color};width:${size}px;height:${size}px;font-size:${Math.round(size * 0.5)}px">${t.letter}</span>`;
 export const teamById = (id) => TEAMS.find((t) => t.id === id) || TEAMS[0];
 
 export const HELPS = [

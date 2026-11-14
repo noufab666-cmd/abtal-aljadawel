@@ -1,5 +1,5 @@
 import {
-  APP, TABLES, TEAMS, HELPS, ICONS, BOARD_ROWS, teamById, tableByCategory, toAr, toEn, fmtDate, pct, esc, shuffle,
+  APP, TABLES, TEAMS, teamBadge, HELPS, ICONS, BOARD_ROWS, teamById, tableByCategory, toAr, toEn, fmtDate, pct, esc, shuffle,
   $, $$, toast, loadBuiltInQuestions, registerSW,
 } from './common.js';
 import { getStore, StoreError } from './store.js';
@@ -37,86 +37,89 @@ function render(html) {
   const h = app.querySelector('h1, h2'); if (h) h.setAttribute('tabindex', '-1');
 }
 
-function teamIcon(t, size = 28) {
-  return `<span style="color:${t.color};display:inline-flex;width:${size}px;height:${size}px">${ICONS[t.icon]}</span>`;
+const teamIcon = (t, size = 28) => teamBadge(t, size);
+
+// ================= شاشة البداية: الاسم والرمز فقط =================
+function teamButtons() {
+  return TEAMS.map((t) => `<button type="button" data-team="${t.id}" aria-pressed="false">${teamIcon(t, 44)}${t.name}<small>${t.about}</small></button>`).join('');
 }
 
-// ================= شاشة البداية =================
-function showWelcome() {
+function showWelcome(preset = {}) {
   render(`
-    <section class="hero">
+    <section class="hero" style="padding-top:12px">
       <div class="mark">${logoSvg()}</div>
       <h1>${APP.title}</h1>
       <p class="initiative">${APP.initiative}</p>
       <p>${APP.author}</p>
-      <p>لعبة جداول الضرب في ${TABLES.map((t) => toAr(t.key)).join(' و')} لطالبات الصف الثالث الابتدائي</p>
     </section>
-    <div class="center-col stack" style="margin-top:20px">
-      <button class="btn primary block" id="go-signup" style="min-height:68px;font-size:24px">أنا جديدة — إنشاء حساب</button>
-      <button class="btn block" id="go-login" style="min-height:68px;font-size:24px">لدي حساب — دخول</button>
-    </div>
-    <p class="footer">
-      <a class="linkbtn" href="teacher.html">لوحة المعلمة</a>
-    </p>`);
-  $('#go-signup').onclick = () => showAuth('signup');
-  $('#go-login').onclick = () => showAuth('login');
-}
-
-// ================= الدخول وإنشاء الحساب =================
-function showAuth(mode, preset = {}) {
-  const signup = mode === 'signup';
-  let team = preset.team || null;
-  render(`
-    ${header('<button class="btn ghost small" id="back">رجوع</button>')}
-    <div class="center-col panel light">
-      <h2 class="section-title" style="color:var(--ink)">${signup ? 'إنشاء حساب جديد' : 'الدخول إلى حسابي'}</h2>
+    <div class="center-col panel light" style="margin-top:12px">
       <form class="stack" id="auth-form" novalidate>
-        <label class="field">اسمك
-          <input id="name" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" required value="${esc(preset.name || '')}">
-          ${signup ? '<span class="help">اكتبي اسمك الأول واسم العائلة، وتذكّري طريقة كتابته.</span>' : ''}
+        <label class="field">اكتبي اسمك
+          <input id="name" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" required placeholder="الاسم الأول واسم العائلة" value="${esc(preset.name || '')}">
         </label>
         <label class="field">الرمز السري (٤ أرقام)
           <input id="pin" class="pin-input" inputmode="numeric" autocomplete="off" maxlength="4" required>
-          ${signup ? '<span class="help">اختاري ٤ أرقام تحفظينها، وأخبري بها ولي أمرك.</span>' : ''}
+          <span class="help">أول مرة؟ اختاري ٤ أرقام تحفظينها، وأخبري بها ولي أمرك.</span>
         </label>
-        ${signup ? `
-        <div class="field">اختاري فريقك
-          <div class="team-pick" id="team-pick">
-            ${TEAMS.map((t) => `<button type="button" data-team="${t.id}" aria-pressed="false">${teamIcon(t, 40)}${t.name}</button>`).join('')}
-          </div>
-        </div>` : ''}
         <div id="auth-error" class="error hidden" role="alert"></div>
-        <button class="btn primary block" type="submit" id="auth-submit" style="min-height:64px;font-size:22px">${signup ? 'إنشاء الحساب والبدء' : 'دخول'}</button>
-        <button type="button" class="linkbtn" id="switch">${signup ? 'لدي حساب؟ دخول' : 'ليس لدي حساب؟ إنشاء حساب جديد'}</button>
+        <button class="btn primary block" type="submit" id="auth-submit" style="min-height:68px;font-size:24px">ابدئي</button>
       </form>
-    </div>`);
-  $('#back').onclick = showWelcome;
-  $('#switch').onclick = () => showAuth(signup ? 'login' : 'signup', { name: $('#name').value });
+    </div>
+    <p class="footer"><a class="linkbtn" href="teacher.html">لوحة المعلمة</a></p>`);
   const pinEl = $('#pin');
   pinEl.addEventListener('input', () => { pinEl.value = toAr(toEn(pinEl.value).replace(/\D/g, '').slice(0, 4)); });
-  $$('#team-pick button').forEach((b) => {
-    b.onclick = () => {
-      team = b.dataset.team;
-      $$('#team-pick button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-    };
-  });
   $('#auth-form').onsubmit = async (e) => {
     e.preventDefault();
     const err = $('#auth-error'); err.classList.add('hidden');
     const btn = $('#auth-submit'); btn.disabled = true;
+    const name = $('#name').value; const pin = pinEl.value;
     try {
-      if (signup && !team) throw new StoreError('اختاري فريقك');
-      const p = signup ? await store.signUp($('#name').value, pinEl.value, team) : await store.signIn($('#name').value, pinEl.value);
-      me = p;
+      me = await store.signIn(name, pin);
       if (me.needsProfile) return showChooseTeam();
+      await afterLogin();
+    } catch (ex) {
+      if (ex.code === 'not-found' || ex.code === 'not-found-or-wrong-pin') return showNewStudent(name, pin, ex.code === 'not-found-or-wrong-pin');
+      err.textContent = ex instanceof StoreError ? ex.message : 'تعذر الاتصال، حاولي مرة أخرى';
+      err.classList.remove('hidden');
+      if (!(ex instanceof StoreError)) console.error(ex);
+    } finally { const b2 = $('#auth-submit'); if (b2) b2.disabled = false; }
+  };
+  (preset.name ? pinEl : $('#name')).focus();
+}
+
+// طالبة جديدة: تختار فريقها مرة واحدة فقط
+function showNewStudent(name, pin, maybeWrongPin) {
+  let team = null;
+  render(`
+    ${header()}
+    <div class="center-col panel light stack">
+      <h2 class="section-title" style="color:var(--ink);margin:0">أهلًا يا ${esc(name)}!</h2>
+      <p style="margin:0">${maybeWrongPin ? 'لم نجد حسابًا بهذا الاسم وهذا الرمز. إن كانت هذه أول مرة لكِ فاختاري فريقك:' : 'هذه أول مرة لكِ في اللعبة. اختاري فريقك:'}</p>
+      <div class="team-pick" id="team-pick">${teamButtons()}</div>
+      <div id="auth-error" class="error hidden" role="alert"></div>
+      <button class="btn primary block" id="create" style="min-height:64px;font-size:22px" disabled>ابدئي اللعب</button>
+      <button class="btn ghost block" id="back" style="color:var(--navy-700);border-color:#d5dbf2">${maybeWrongPin ? 'لدي حساب، أريد تصحيح الاسم أو الرمز' : 'رجوع لتصحيح الاسم'}</button>
+    </div>`);
+  $('#back').onclick = () => showWelcome({ name });
+  $$('#team-pick button').forEach((b) => {
+    b.onclick = () => {
+      team = b.dataset.team;
+      $$('#team-pick button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      $('#create').disabled = false;
+    };
+  });
+  $('#create').onclick = async () => {
+    const err = $('#auth-error'); err.classList.add('hidden');
+    $('#create').disabled = true;
+    try {
+      me = await store.signUp(name, pin, team);
       await afterLogin();
     } catch (ex) {
       err.textContent = ex instanceof StoreError ? ex.message : 'تعذر الاتصال، حاولي مرة أخرى';
       err.classList.remove('hidden');
-      if (!(ex instanceof StoreError)) console.error(ex);
-    } finally { btn.disabled = false; }
+      const c = $('#create'); if (c) c.disabled = false;
+    }
   };
-  $('#name').focus();
 }
 
 // إذا حذفت المعلمة بيانات الطالبة ثم عادت للدخول
@@ -125,7 +128,7 @@ function showChooseTeam() {
     ${header()}
     <div class="center-col panel light stack">
       <h2 class="section-title" style="color:var(--ink)">اختاري فريقك</h2>
-      <div class="team-pick">${TEAMS.map((t) => `<button type="button" data-team="${t.id}">${teamIcon(t, 40)}${t.name}</button>`).join('')}</div>
+      <div class="team-pick">${teamButtons()}</div>
     </div>`);
   $$('.team-pick button').forEach((b) => {
     b.onclick = async () => {
@@ -456,7 +459,7 @@ async function showLeaderboard() {
       <section class="panel">
         <h2 class="section-title">أبطال الجداول</h2>
         ${top.length ? `<table class="lb"><thead><tr><th>#</th><th>الاسم</th><th>الفريق</th><th>النقاط</th></tr></thead><tbody>
-          ${top.map((s, i) => { const t = teamById(s.team); return `<tr ${s.uid === me.uid ? 'style="background:rgba(251,191,36,.15)"' : ''}><td class="rank">${toAr(i + 1)}</td><td>${esc(s.name.split(' ')[0])}</td><td><span class="team-dot" style="background:${t.color}"></span>${t.name.replace('فريق ', '')}</td><td><b>${toAr(s.total)}</b></td></tr>`; }).join('')}
+          ${top.map((s, i) => { const t = teamById(s.team); return `<tr ${s.uid === me.uid ? 'style="background:rgba(251,191,36,.15)"' : ''}><td class="rank">${toAr(i + 1)}</td><td>${esc(s.name.split(' ')[0])}</td><td><span class="team-dot" style="background:${t.color}"></span>${t.short}</td><td><b>${toAr(s.total)}</b></td></tr>`; }).join('')}
         </tbody></table>` : '<p>لا توجد نتائج بعد. كوني أول بطلة!</p>'}
       </section>
     </div>`);

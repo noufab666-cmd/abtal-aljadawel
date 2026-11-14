@@ -6,7 +6,9 @@ export const TEACHER_EMAIL = 'teacher@abtal-aljadawel.app';
 const STUDENT_DOMAIN = 'students.abtal-aljadawel.app';
 const pinToPassword = (pin) => `aj-${pin}-tbl`;
 
-export class StoreError extends Error {}
+export class StoreError extends Error {
+  constructor(msg, code = '') { super(msg); this.code = code; }
+}
 
 export function emptyProfile(uid, name, team, pin) {
   const tableStats = {};
@@ -64,7 +66,7 @@ const lbEntry = (p) => ({ name: p.name, team: p.team, total: p.totalScore, round
 
 function friendlyAuthError(e) {
   const code = e?.code || '';
-  if (code.includes('email-already-in-use')) return new StoreError('هذا الاسم مسجّل من قبل. إن كان اسمك فاختاري «دخول»، وإلا أضيفي اسم العائلة.');
+  if (code.includes('email-already-in-use')) return new StoreError('هذا الاسم مسجّل من قبل برمز سري مختلف. ارجعي وتأكدي من الرمز، أو أضيفي اسم العائلة إن لم يكن هذا حسابك.', 'name-taken');
   if (code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('user-not-found') || code.includes('invalid-login')) return new StoreError('الاسم أو الرمز السري غير صحيح');
   if (code.includes('too-many-requests')) return new StoreError('محاولات كثيرة، انتظري قليلًا ثم حاولي مرة أخرى');
   if (code.includes('network')) return new StoreError('لا يوجد اتصال بالإنترنت، تأكدي من الاتصال ثم حاولي مرة أخرى');
@@ -127,7 +129,12 @@ class FirebaseStore {
     name = validateName(name); pin = validatePin(pin);
     try {
       await this.fb.signInWithEmailAndPassword(this.auth, await this.studentEmail(name), pinToPassword(pin));
-    } catch (e) { throw friendlyAuthError(e); }
+    } catch (e) {
+      const err = friendlyAuthError(e);
+      // Firebase لا يفرّق بين «لا يوجد حساب» و«الرمز خطأ» لأسباب أمنية
+      if (err.message.includes('غير صحيح')) err.code = 'not-found-or-wrong-pin';
+      throw err;
+    }
     const p = await this.currentStudent();
     if (p?.needsProfile) Object.assign(p, { name, pin });
     return p;
@@ -233,7 +240,7 @@ class LocalStore {
   async signUp(name, pin, team) {
     name = validateName(name); pin = validatePin(pin);
     const db = this.db; const key = normalizeName(name);
-    if (db.users[key]) throw new StoreError('هذا الاسم مسجّل من قبل. إن كان اسمك فاختاري «دخول»، وإلا أضيفي اسم العائلة.');
+    if (db.users[key]) throw new StoreError('هذا الاسم مسجّل من قبل برمز سري مختلف. ارجعي وتأكدي من الرمز، أو أضيفي اسم العائلة إن لم يكن هذا حسابك.', 'name-taken');
     const uid = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     db.users[key] = { uid, pin };
     const p = emptyProfile(uid, name, team, pin);
@@ -243,7 +250,8 @@ class LocalStore {
   async signIn(name, pin) {
     name = validateName(name); pin = validatePin(pin);
     const db = this.db; const u = db.users[normalizeName(name)];
-    if (!u || u.pin !== pin) throw new StoreError('الاسم أو الرمز السري غير صحيح');
+    if (!u) throw new StoreError('لم نجد حسابًا بهذا الاسم', 'not-found');
+    if (u.pin !== pin) throw new StoreError('الرمز السري غير صحيح، حاولي مرة أخرى', 'wrong-pin');
     db.session = u.uid; this.save(db);
     return db.students[u.uid] || { uid: u.uid, needsProfile: true, name, pin };
   }

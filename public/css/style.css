@@ -235,3 +235,6 @@ table.lb th { color: var(--muted); font-size: 15px; }
   .cert-wrap, .cert-wrap * { visibility: visible; }
   .cert-wrap { position: absolute; inset: 0; padding: 0; }
 }
+
+.team-badge { display: inline-grid; place-items: center; border-radius: 50%; color: #13235e; font-weight: 800; line-height: 1; flex: none; }
+.team-pick button small { font-weight: 500; font-size: 14px; color: #5b6795; }
