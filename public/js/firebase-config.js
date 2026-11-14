@@ -1,6 +1,13 @@
 // ======================================================================
-// إعدادات Firebase — تُلصق هنا بعد إنشاء مشروع Firebase (راجعي docs/دليل-النشر.md)
-// ما دامت القيمة null تعمل اللعبة في «الوضع التجريبي» وتُحفظ النتائج على الجهاز نفسه فقط.
-// ملاحظة: هذه الإعدادات ليست سرية، والحماية الحقيقية في ملف firestore.rules.
+// إعدادات ربط Firebase لمشروع «أبطال الجداول»
+// هذه الإعدادات ليست سرية (تُرسل إلى كل من يفتح اللعبة)، والحماية الحقيقية في ملف firestore.rules.
+// لو جعلتِ القيمة null تعود اللعبة إلى «الوضع التجريبي» المحلي.
 // ======================================================================
-export const firebaseConfig = null;
+export const firebaseConfig = {
+  apiKey: 'AIzaSyBsdCkmgQhHwYzgCEbM_tkHKkl6-kNhGvc',
+  authDomain: 'abtal-aljadawel.firebaseapp.com',
+  projectId: 'abtal-aljadawel',
+  storageBucket: 'abtal-aljadawel.firebasestorage.app',
+  messagingSenderId: '125795723050',
+  appId: '1:125795723050:web:f2eb8f4405a0fa3648a053',
+};
