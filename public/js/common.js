@@ -112,6 +112,11 @@ export function normalizeName(s) {
     .replace(/ة/g, 'ه')
     .replace(/ؤ/g, 'و')
     .replace(/ئ/g, 'ي')
+    .replace(/ی/g, 'ي')
+    .replace(/ک/g, 'ك')
+    // الأرقام العربية (٢) والإنجليزية (2) تُعامل كرقم واحد، فلوحة مفاتيح اللابتوب تكتب 2 والجوال يكتب ٢
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
     .toLowerCase();
 }
 
