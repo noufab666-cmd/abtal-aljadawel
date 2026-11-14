@@ -26,7 +26,7 @@ function fitText(ctx, text, maxW, size, weight = 800) {
   do { ctx.font = `${weight} ${s}px Tajawal, 'Segoe UI', Tahoma, sans-serif`; s -= 2; } while (ctx.measureText(text).width > maxW && s > 20);
 }
 
-export async function drawCertificate({ name, team, score, correct, date }) {
+export async function drawCertificate({ name, team, score, correct, answered, rounds, date }) {
   try {
     await Promise.all([document.fonts.load("800 60px Tajawal"), document.fonts.load("500 30px Tajawal"), document.fonts.load("700 30px Tajawal")]);
   } catch {}
@@ -67,8 +67,9 @@ export async function drawCertificate({ name, team, score, correct, date }) {
   ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(W / 2 - 420, 640); ctx.lineTo(W / 2 + 420, 640); ctx.stroke();
 
   ctx.fillStyle = '#334155'; ctx.font = "500 36px Tajawal, sans-serif";
-  ctx.fillText(`من ${team}، لإتقانها جداول الضرب في لعبة «${APP.title}»`, W / 2, 700);
-  ctx.fillText(`بحصولها على ${toAr(correct)} إجابات صحيحة من ${toAr(APP.roundSize)} و${toAr(score)} نقطة`, W / 2, 760);
+  ctx.fillText(`من ${team}، لإتمامها رحلة جداول الضرب في لعبة «${APP.title}»`, W / 2, 700);
+  const acc = answered ? Math.round((correct / answered) * 100) : 0;
+  ctx.fillText(`بإكمال ${toAr(rounds || APP.journeyRounds)} جولة، ومجموع ${toAr(score)} نقطة، ونسبة إجابات صحيحة ${toAr(acc)}٪`, W / 2, 760);
   ctx.fillStyle = NAVY; ctx.font = "700 32px Tajawal, sans-serif";
   ctx.fillText(`التاريخ: ${fmtDate(date)}`, W / 2, 830);
 

@@ -238,3 +238,16 @@ table.lb th { color: var(--muted); font-size: 15px; }
 
 .team-badge { display: inline-grid; place-items: center; border-radius: 50%; color: #13235e; font-weight: 800; line-height: 1; flex: none; }
 .team-pick button small { font-weight: 500; font-size: 14px; color: #5b6795; }
+
+/* رحلة البطلة */
+.journey { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; }
+.journey .step { aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: clamp(12px, 2.4vw, 18px); background: rgba(255,255,255,.1); color: var(--muted); border: 2px solid transparent; }
+.journey .step.done { background: var(--gold); color: #3b2a00; }
+.journey .step.next { border-color: #fff; color: #fff; }
+.journey .step svg { width: 60%; height: 60%; }
+.journey .step.goal:not(.done) svg { opacity: .7; }
+.stars { display: flex; justify-content: center; gap: 8px; margin-bottom: 6px; }
+.stars span { width: 46px; height: 46px; color: rgba(255,255,255,.18); }
+.stars span.on { color: var(--gold); }
+.stars svg { width: 100%; height: 100%; }
+@media (max-width: 520px) { .journey { grid-template-columns: repeat(6, minmax(0, 1fr)); } }

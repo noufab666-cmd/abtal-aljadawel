@@ -104,7 +104,7 @@ async function viewResults() {
     </div>
     <div class="table-scroll"><table class="data">
       <thead><tr>
-        <th data-sort="name">الاسم</th><th data-sort="team">الفريق</th><th data-sort="roundsPlayed">الجولات</th>
+        <th data-sort="name">الاسم</th><th data-sort="team">الفريق</th><th data-sort="fullRounds">رحلة البطلة</th>
         <th data-sort="totalScore">النقاط</th><th data-sort="bestScore">أفضل جولة</th><th data-sort="acc">الدقة</th>
         ${TABLES.map((t) => `<th>${t.category}</th>`).join('')}
         <th data-sort="lastPlayed">آخر لعب</th><th></th>
@@ -136,7 +136,7 @@ function drawRows() {
     return `<tr>
       <td><strong>${esc(s.name)}</strong></td>
       <td><span class="team-dot" style="background:${t.color}"></span>${t.name}</td>
-      <td>${toAr(s.roundsPlayed || 0)}</td>
+      <td>${toAr(Math.min(s.fullRounds || 0, APP.journeyRounds))} / ${toAr(APP.journeyRounds)}${s.certificates ? ' ★' : ''}</td>
       <td><strong>${toAr(s.totalScore || 0)}</strong></td>
       <td>${toAr(s.bestScore || 0)}</td>
       <td>${pctBadge(s.totalCorrect, s.totalAnswered)}</td>
@@ -166,7 +166,7 @@ async function showStudent(uid) {
           <div class="chip">${t.name}</div>
           <div class="chip">تاريخ التسجيل: ${fmtDateTime(s.createdAt)}</div>
           <div class="chip">مجموع النقاط: <b>${toAr(s.totalScore)}</b></div>
-          <div class="chip">الشهادات: <b>${toAr(s.certificates || 0)}</b></div>
+          <div class="chip">رحلة البطلة: <b>${toAr(Math.min(s.fullRounds || 0, APP.journeyRounds))} / ${toAr(APP.journeyRounds)}</b>${s.certificates ? ' · حصلت على الشهادة' : ''}</div>
           <div class="chip">الدقة: <b>${toAr(pct(s.totalCorrect, s.totalAnswered))}٪</b></div>
         </div>
         <h3 style="margin:8px 0 0">الجولات (${toAr(rounds.length)})</h3>
@@ -201,9 +201,9 @@ async function showStudent(uid) {
 }
 
 function exportCsv() {
-  const head = ['الاسم', 'الفريق', 'الجولات', 'النقاط', 'أفضل جولة', 'الإجابات الصحيحة', 'عدد الإجابات', 'الدقة %', ...TABLES.map((t) => t.category + ' %'), 'الشهادات', 'آخر لعب'];
+  const head = ['الاسم', 'الفريق', 'الجولات المكتملة', 'النقاط', 'أفضل جولة', 'الإجابات الصحيحة', 'عدد الإجابات', 'الدقة %', ...TABLES.map((t) => t.category + ' %'), 'الشهادات', 'آخر لعب'];
   const rows = filtered().map((s) => [
-    s.name, teamById(s.team).name, s.roundsPlayed, s.totalScore, s.bestScore, s.totalCorrect, s.totalAnswered, pct(s.totalCorrect, s.totalAnswered),
+    s.name, teamById(s.team).name, s.fullRounds || 0, s.totalScore, s.bestScore, s.totalCorrect, s.totalAnswered, pct(s.totalCorrect, s.totalAnswered),
     ...TABLES.map((t) => { const st = s.tableStats?.[t.key] || {}; return st.n ? pct(st.c, st.n) : ''; }),
     s.certificates || 0, s.lastPlayed ? new Date(s.lastPlayed).toLocaleString('ar-SA-u-ca-gregory') : '',
   ]);

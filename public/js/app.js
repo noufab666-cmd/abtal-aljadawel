@@ -1,5 +1,5 @@
 import {
-  APP, TABLES, TEAMS, teamBadge, HELPS, ICONS, BOARD_ROWS, teamById, tableByCategory, toAr, toEn, fmtDate, pct, esc, shuffle,
+  APP, TABLES, TEAMS, teamBadge, ordinal, encouragementFor, starsFor, HELPS, ICONS, BOARD_ROWS, teamById, tableByCategory, toAr, toEn, fmtDate, pct, esc, shuffle,
   $, $$, toast, loadBuiltInQuestions, registerSW,
 } from './common.js';
 import { getStore, StoreError } from './store.js';
@@ -187,8 +187,14 @@ async function showHome() {
           ${saved ? '<button class="btn ghost block" id="new-round">ابدئي جولة جديدة بدلًا منها</button>' : ''}
           <button class="btn block" id="lb">${ICONS.trophy} لوحة النتائج</button>
           <button class="btn block" id="cert" ${me.certificates ? '' : 'disabled'}>شهادة «بطلة الجداول»</button>
-          ${me.certificates ? '' : `<p class="note" style="margin:0">أجيبي إجابة صحيحة عن ${toAr(APP.certificateMin)} أسئلة أو أكثر في جولة واحدة لتحصلي على شهادة «بطلة الجداول».</p>`}
         </div>
+      </section>
+      <section class="panel" style="grid-column:1/-1">
+        <h2 class="section-title">رحلة البطلة</h2>
+        ${journeyPath(me.fullRounds || 0)}
+        <p style="margin:10px 0 0;color:var(--muted);font-size:15px">${me.certificates
+          ? 'أكملتِ الرحلة وحصلتِ على شهادة «بطلة الجداول». يمكنك مواصلة اللعب لزيادة نقاط فريقك.'
+          : `أكملي ${toAr(APP.journeyRounds)} جولة (كل جولة ${toAr(APP.roundSize)} أسئلة) لتحصلي على شهادة «بطلة الجداول». بقي لكِ ${toAr(APP.journeyRounds - (me.fullRounds || 0))}.`}</p>
       </section>
       <section class="panel">
         <h2 class="section-title">تقدّمي في الجداول</h2>
@@ -386,20 +392,42 @@ async function finishRound() {
   finishing = false;
 }
 
+function journeyPath(done) {
+  const n = APP.journeyRounds;
+  return `<div class="journey" role="img" aria-label="أكملتِ ${toAr(Math.min(done, n))} من ${toAr(n)} جولة">
+    ${Array.from({ length: n }, (_, i) => {
+      const last = i === n - 1;
+      const cls = i < done ? 'done' : i === done ? 'next' : '';
+      return `<span class="step ${cls} ${last ? 'goal' : ''}">${last ? ICONS.trophy : toAr(i + 1)}</span>`;
+    }).join('')}
+  </div>`;
+}
+
+function starsHtml(k) {
+  return `<div class="stars" aria-label="${toAr(k)} من ٣ نجوم">${[0, 1, 2].map((i) => `<span class="${i < k ? 'on' : ''}">${ICONS.star}</span>`).join('')}</div>`;
+}
+
 async function showResult(r) {
-  const earned = r.correct >= APP.certificateMin;
-  const msg = r.correct === r.answered && r.answered === APP.roundSize ? 'رائع! إجاباتك كلها صحيحة'
-    : r.correct >= APP.certificateMin ? 'أحسنتِ! أنتِ بطلة الجداول'
-    : r.correct >= 5 ? 'عمل جيد، واصلي التدريب' : 'لا بأس، التدريب يصنع البطلات';
+  const full = r.answered >= APP.roundSize;
+  const before = me.fullRounds || 0;
+  const num = full ? before + 1 : before; // رقم هذه الجولة في رحلة البطلة
+  const earned = full && !me.certificates && num >= APP.journeyRounds;
+  const msg = !full ? 'أنهيتِ الجولة مبكرًا'
+    : num <= APP.journeyRounds ? `الجولة ${ordinal(num)}: ${encouragementFor(num)}`
+    : 'أحسنتِ! واصلي التدريب لتزيدي نقاط فريقك';
   render(`
     ${header()}
     <div class="center-col panel result">
+      ${full ? starsHtml(starsFor(r.correct)) : ''}
       <h2 style="margin:0">${msg}</h2>
       <div class="big">${toAr(r.score)}</div>
       <div style="font-size:20px;font-weight:700">نقطة · ${toAr(r.correct)} إجابات صحيحة من ${toAr(r.answered)}</div>
       <div style="margin:14px 0"><span id="save-status" class="save-status saving">جارٍ حفظ النتيجة…</span></div>
+      ${me.certificates && !earned ? '' : `<div style="margin:6px 0 16px">${journeyPath(Math.min(num, APP.journeyRounds))}</div>`}
       <div class="stack">
-        ${earned ? '<button class="btn primary block" id="cert" style="min-height:64px">عرض شهادة «بطلة الجداول»</button>' : `<p class="note">تحتاجين إلى ${toAr(APP.certificateMin)} إجابات صحيحة للحصول على الشهادة. حاولي في الجولة القادمة!</p>`}
+        ${earned ? '<button class="btn primary block" id="cert" style="min-height:64px">مبارك! اعرضي شهادة «بطلة الجداول»</button>'
+          : !full ? `<p class="note">الجولة تُحسب في رحلتك عندما تجيبين عن الأسئلة ${toAr(APP.roundSize)} كلها.</p>`
+          : me.certificates ? '' : `<p class="note">${APP.journeyRounds - num === 1 ? 'بقيت جولة واحدة' : `بقي ${toAr(APP.journeyRounds - num)} من ${toAr(APP.journeyRounds)} جولة`} على شهادة «بطلة الجداول».</p>`}
         <button class="btn block" id="again">جولة جديدة</button>
         <button class="btn ghost block" id="lb">لوحة النتائج</button>
         <button class="btn ghost block" id="home">الرئيسية</button>
@@ -480,7 +508,7 @@ async function showCertificate() {
       </div>
     </div>`);
   $('#home').onclick = showHome;
-  const canvas = await drawCertificate({ name: me.name, team: teamById(me.team).name, score: c.score, correct: c.correct, date: c.at });
+  const canvas = await drawCertificate({ name: me.name, team: teamById(me.team).name, score: c.score, correct: c.correct, answered: c.answered, rounds: c.rounds, date: c.at });
   const url = canvas.toDataURL('image/png');
   $('#cert-img').src = url;
   $('#print').onclick = () => window.print();

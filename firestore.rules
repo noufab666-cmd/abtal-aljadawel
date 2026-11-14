@@ -16,13 +16,19 @@ service cloud.firestore {
         && validTeam(request.resource.data.team)
         && request.resource.data.name is string && request.resource.data.name.size() <= 40
         && request.resource.data.totalScore == 0
-        && request.resource.data.roundsPlayed == 0;
+        && request.resource.data.roundsPlayed == 0
+        && request.resource.data.get('fullRounds', 0) == 0
+        && request.resource.data.get('certificates', 0) == 0;
       allow update: if isTeacher() || (isOwner(uid)
         && request.resource.data.uid == uid
         && request.resource.data.name == resource.data.name
         && request.resource.data.team == resource.data.team
         && request.resource.data.pin == resource.data.pin
         && request.resource.data.roundsPlayed == resource.data.roundsPlayed + 1
+        && request.resource.data.get('fullRounds', 0) <= resource.data.get('fullRounds', 0) + 1
+        && request.resource.data.get('fullRounds', 0) >= resource.data.get('fullRounds', 0)
+        && (request.resource.data.get('certificates', 0) == resource.data.get('certificates', 0)
+            || request.resource.data.get('fullRounds', 0) >= 12)
         && request.resource.data.totalScore >= resource.data.totalScore
         && request.resource.data.totalScore <= resource.data.totalScore + 300);
       allow delete: if isTeacher();

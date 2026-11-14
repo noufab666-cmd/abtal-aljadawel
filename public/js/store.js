@@ -16,7 +16,7 @@ export function emptyProfile(uid, name, team, pin) {
   return {
     uid, name: cleanName(name), nameKey: normalizeName(name), team, pin: String(pin),
     totalScore: 0, roundsPlayed: 0, totalCorrect: 0, totalAnswered: 0,
-    bestScore: 0, bestCorrect: 0, certificates: 0, lastCertificate: null,
+    bestScore: 0, bestCorrect: 0, fullRounds: 0, certificates: 0, lastCertificate: null,
     tableStats, seen: {}, createdAt: Date.now(), lastPlayed: 0,
   };
 }
@@ -55,9 +55,11 @@ export function applyRound(profile, round) {
     }
     p.seen[a.qid] = a.correct ? 1 : 0;
   }
-  if (round.correct >= APP.certificateMin) {
-    p.certificates = (p.certificates || 0) + 1;
-    p.lastCertificate = { at: round.finishedAt, score: round.score, correct: round.correct };
+  // الجولة تُحسب في «رحلة البطلة» إذا أُجيب فيها عن الأسئلة العشرة كلها
+  if (round.answered >= APP.roundSize) p.fullRounds = (p.fullRounds || 0) + 1;
+  if (!p.certificates && (p.fullRounds || 0) >= APP.journeyRounds) {
+    p.certificates = 1;
+    p.lastCertificate = { at: round.finishedAt, score: p.totalScore, correct: p.totalCorrect, answered: p.totalAnswered, rounds: p.fullRounds };
   }
   return p;
 }
