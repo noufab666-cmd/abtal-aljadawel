@@ -1,5 +1,5 @@
 // عامل الخدمة: يجعل اللعبة تفتح بسرعة ويجلب أحدث نسخة دائمًا عند توفر الإنترنت
-const CACHE = 'abtal-v4';
+const CACHE = 'abtal-v5';
 const ASSETS = ['./', 'index.html', 'teacher.html', 'css/style.css', 'css/teacher.css', 'js/app.js', 'js/teacher.js', 'js/common.js',
   'js/store.js', 'js/certificate.js', 'js/firebase-config.js', 'vendor/firebase.js', 'data/questions.json', 'manifest.webmanifest',
   'icons/icon-192.png'];

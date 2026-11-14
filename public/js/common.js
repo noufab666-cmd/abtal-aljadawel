@@ -170,7 +170,17 @@ export function validateQuestion(q) {
 }
 
 export function registerSW() {
+  // إذا أعاد المتصفح عرض الصفحة من ذاكرته دون تحميل (زر الرجوع أو العودة إلى التبويب) نعيد تحميلها لنحصل على أحدث نسخة
+  window.addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
   if ('serviceWorker' in navigator && location.protocol !== 'file:' && !/[?&]emulator=1/.test(location.search)) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    // عند تثبيت نسخة جديدة من اللعبة نعيد تحميل الصفحة مرة واحدة تلقائيًا
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloaded) return;
+      reloaded = true;
+      location.reload();
+    });
+    navigator.serviceWorker.register('sw.js').then((reg) => reg.update()).catch(() => {});
   }
 }
