@@ -251,3 +251,11 @@ table.lb th { color: var(--muted); font-size: 15px; }
 .stars span.on { color: var(--gold); }
 .stars svg { width: 100%; height: 100%; }
 @media (max-width: 520px) { .journey { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+
+/* المؤقت */
+.timer { display: flex; align-items: center; gap: 10px; margin: 2px 0 6px; font-weight: 700; color: var(--navy-700); }
+.timer .tbar { flex: 1; height: 12px; background: #e5e9f6; border-radius: 999px; overflow: hidden; }
+.timer .tbar i { display: block; height: 100%; width: 100%; background: var(--navy-500); border-radius: 999px; transition: width .25s linear; }
+.timer b { min-width: 2.2em; text-align: center; font-size: 24px; }
+.timer.low { color: var(--bad); }
+.timer.low .tbar i { background: var(--bad); }

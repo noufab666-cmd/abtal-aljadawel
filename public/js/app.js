@@ -304,6 +304,7 @@ function openQuestion(cellKey, category, pts) {
           <span class="chip">${esc(q.type)}</span>
           <span class="chip pts">${toAr(q.points)} نقطة</span>
         </div>
+        <div class="timer" id="timer" role="timer" aria-label="الوقت المتبقي بالثواني"><span>الوقت</span><div class="tbar"><i></i></div><b></b></div>
         <div class="q-text" id="q-text">${esc(q.question)}</div>
         <div class="options">
           ${q.options.map((o, i) => `<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}
@@ -334,12 +335,32 @@ function openQuestion(cellKey, category, pts) {
     };
   });
 
-  opts.forEach((b) => {
-    b.onclick = () => {
+  // ===== المؤقت: وقت كل سؤال حسب صعوبته =====
+  const limit = timeFor(q);
+  const startedQ = Date.now();
+  const tEl = $('#timer', modalRoot);
+  const drawTimer = (left) => {
+    tEl.querySelector('b').textContent = toAr(left);
+    tEl.querySelector('i').style.width = `${(left / limit) * 100}%`;
+    tEl.classList.toggle('low', left <= 5);
+  };
+  drawTimer(limit);
+  clearInterval(questionTimer);
+  questionTimer = setInterval(() => {
+    if (!document.body.contains(tEl)) { clearInterval(questionTimer); return; }
+    const left = Math.max(0, limit - Math.floor((Date.now() - startedQ) / 1000));
+    drawTimer(left);
+    if (left <= 0) { clearInterval(questionTimer); answer(-1); }
+  }, 250);
+
+  opts.forEach((b) => { b.onclick = () => answer(Number(b.dataset.i)); });
+
+  function answer(i) {
       if (state.locked) return;
-      const i = Number(b.dataset.i);
+      const b = opts[i];
+      const timeUp = i < 0;
       const correct = i === q.correctIndex;
-      if (!correct && state.retryArmed) {
+      if (!correct && !timeUp && state.retryArmed) {
         state.retryArmed = false; state.wrongTries.add(i);
         b.classList.add('bad'); b.disabled = true;
         $('[data-help="retry"]', modalRoot).classList.remove('active');
@@ -348,26 +369,36 @@ function openQuestion(cellKey, category, pts) {
         return;
       }
       state.locked = true;
+      clearInterval(questionTimer);
+      const secs = Math.min(limit, Math.round((Date.now() - startedQ) / 1000));
       opts.forEach((o) => { o.disabled = true; });
       opts[q.correctIndex].classList.add('ok');
-      if (!correct) b.classList.add('bad');
+      if (!correct && b) b.classList.add('bad');
       $$('[data-help]', modalRoot).forEach((x) => { x.disabled = true; });
       const gained = correct ? q.points : 0;
       round.score += gained;
-      round.answers.push({ qid: q.id, category: q.category, type: q.type, difficulty: q.difficulty, points: q.points, correct, chosen: i, cell: cellKey });
+      round.answers.push({ qid: q.id, category: q.category, type: q.type, difficulty: q.difficulty, points: q.points, correct, chosen: i, secs, timeUp, cell: cellKey });
       round.cells[cellKey] = { qid: q.id, correct, points: gained };
       saveRoundLocal();
       const last = round.answers.length >= APP.roundSize;
       $('#fb', modalRoot).innerHTML = `
         <div class="feedback ${correct ? 'ok' : 'bad'}">
-          <span>${correct ? `إجابة صحيحة! +${toAr(q.points)} نقطة` : `الإجابة الصحيحة: ${esc(q.options[q.correctIndex])}`}</span>
+          <span>${correct ? `إجابة صحيحة! +${toAr(q.points)} نقطة` : `${timeUp ? 'انتهى الوقت. ' : ''}الإجابة الصحيحة: ${esc(q.options[q.correctIndex])}`}</span>
           <button class="btn primary" id="next">${last ? 'عرض النتيجة' : 'متابعة'}</button>
         </div>`;
       const next = $('#next', modalRoot); next.focus();
       next.onclick = () => { modalRoot.innerHTML = ''; if (last) finishRound(); else showBoard(); };
-    };
-  });
+  }
 }
+
+let questionTimer = null;
+// وقت كل سؤال بالثواني حسب الصعوبة
+const TIME_LIMITS = { 'سهل': 30, 'متوسط': 45, 'صعب': 60 };
+const timeFor = (q) => TIME_LIMITS[q.difficulty] || 45;
+const fmtDuration = (s) => {
+  s = Math.max(0, Math.round(s)); const m = Math.floor(s / 60); const r = s % 60;
+  return m ? `${toAr(m)} د ${toAr(r)} ث` : `${toAr(r)} ث`;
+};
 
 let finishing = false;
 async function finishRound() {
@@ -380,7 +411,8 @@ async function finishRound() {
     score: round.score,
     correct: round.answers.filter((a) => a.correct).length,
     answered: round.answers.length,
-    answers: round.answers.map(({ qid, category, type, difficulty, points, correct, chosen }) => ({ qid, category, type, difficulty, points, correct, chosen })),
+    answers: round.answers.map(({ qid, category, type, difficulty, points, correct, chosen, secs, timeUp }) => ({ qid, category, type, difficulty, points, correct, chosen, secs: secs || 0, timeUp: !!timeUp })),
+    seconds: round.answers.reduce((t, a) => t + (a.secs || 0), 0),
     helpsUsed: Object.keys(round.helps).filter((k) => round.helps[k]),
     name: me.name,
     team: me.team,
@@ -422,6 +454,7 @@ async function showResult(r) {
       <h2 style="margin:0">${msg}</h2>
       <div class="big">${toAr(r.score)}</div>
       <div style="font-size:20px;font-weight:700">نقطة · ${toAr(r.correct)} إجابات صحيحة من ${toAr(r.answered)}</div>
+      <div style="color:var(--muted);font-weight:700;margin-top:4px">وقت الإجابة: ${fmtDuration(r.seconds)}</div>
       <div style="margin:14px 0"><span id="save-status" class="save-status saving">جارٍ حفظ النتيجة…</span></div>
       ${me.certificates && !earned ? '' : `<div style="margin:6px 0 16px">${journeyPath(Math.min(num, APP.journeyRounds))}</div>`}
       <div class="stack">
@@ -435,7 +468,7 @@ async function showResult(r) {
       <ul class="answers-list">
         ${r.answers.map((a, i) => {
           const q = pool.find((x) => x.id === a.qid);
-          return `<li><span>${toAr(i + 1)}. ${esc(q ? q.question : '')}</span><span>${a.correct ? '✓' : '✗'}</span></li>`;
+          return `<li><span>${toAr(i + 1)}. ${esc(q ? q.question : '')}</span><span style="white-space:nowrap">${a.timeUp ? 'انتهى الوقت ' : ''}${a.correct ? '✓' : '✗'}</span></li>`;
         }).join('')}
       </ul>
     </div>`);

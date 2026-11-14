@@ -171,12 +171,13 @@ async function showStudent(uid) {
         </div>
         <h3 style="margin:8px 0 0">الجولات (${toAr(rounds.length)})</h3>
         <div class="table-scroll" style="border:1px solid #e5e9f6">
-          <table class="data" style="min-width:600px"><thead><tr><th>التاريخ</th><th>النقاط</th><th>الصحيحة</th><th>المساعدات</th><th>الأخطاء</th></tr></thead><tbody>
+          <table class="data" style="min-width:600px"><thead><tr><th>التاريخ</th><th>النقاط</th><th>الصحيحة</th><th>المدة</th><th>المساعدات</th><th>الأخطاء</th></tr></thead><tbody>
           ${rounds.map((r) => `<tr>
             <td>${fmtDateTime(r.finishedAt)}</td><td><b>${toAr(r.score)}</b></td><td>${toAr(r.correct)} / ${toAr(r.answered)}</td>
+            <td>${r.seconds ? (r.seconds >= 60 ? `${toAr(Math.floor(r.seconds / 60))} د ${toAr(r.seconds % 60)} ث` : `${toAr(r.seconds)} ث`) : '—'}${(r.answers || []).some((a) => a.timeUp) ? `<br><small>انتهى الوقت في ${toAr((r.answers || []).filter((a) => a.timeUp).length)}</small>` : ''}</td>
             <td>${toAr((r.helpsUsed || []).length)}</td>
             <td>${(r.answers || []).filter((a) => !a.correct).map((a) => `<span class="chip" style="font-size:12px">${esc(a.category)} · سؤال ${toAr(String(a.qid).replace('c-', 'م-'))}</span>`).join(' ') || '—'}</td>
-          </tr>`).join('') || '<tr><td colspan="5">لم تلعب أي جولة بعد</td></tr>'}
+          </tr>`).join('') || '<tr><td colspan="6">لم تلعب أي جولة بعد</td></tr>'}
           </tbody></table>
         </div>
         <div class="toolbar" style="margin:0">
