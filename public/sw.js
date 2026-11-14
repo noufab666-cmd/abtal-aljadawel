@@ -1,5 +1,5 @@
 // عامل الخدمة: يجعل اللعبة تفتح بسرعة ويجلب أحدث نسخة دائمًا عند توفر الإنترنت
-const CACHE = 'abtal-v3';
+const CACHE = 'abtal-v4';
 const ASSETS = ['./', 'index.html', 'teacher.html', 'css/style.css', 'css/teacher.css', 'js/app.js', 'js/teacher.js', 'js/common.js',
   'js/store.js', 'js/certificate.js', 'js/firebase-config.js', 'vendor/firebase.js', 'data/questions.json', 'manifest.webmanifest',
   'icons/icon-192.png'];
@@ -12,7 +12,8 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request).then((res) => {
+    // no-cache: نتحقق من الخادم دائمًا حتى لا تختلط ملفات نسخة قديمة بنسخة جديدة
+    fetch(e.request, { cache: 'no-cache' }).then((res) => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
       return res;
     }).catch(() => caches.match(e.request).then((r) => r || caches.match('./')))
